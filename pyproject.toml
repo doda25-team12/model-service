@@ -1,0 +1,24 @@
+[project]
+name = "model_service"
+version = "0.1.0"
+description = ""
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "flasgger==0.9.7.1",
+    "flask==2.3.3",
+    "matplotlib==3.10.1",
+    "nltk==3.6.1",
+    "numpy==1.26.4",
+    "pandas==2.2.2",
+    "scikit-learn==1.4.2",
+    "scipy==1.13",
+]
+
+[build-system]
+requires = ["uv_build>=0.9.9,<0.10.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "src"
+module-root = ""
