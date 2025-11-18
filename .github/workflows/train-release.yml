@@ -1,0 +1,39 @@
+name: Train & Release Model
+
+on:
+  workflow_dispatch:
+jobs:
+  train-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Sync dependencies
+        run: uv sync
+
+      - name: Download dataset
+        run: uv run python src/get_data.py
+
+      - name: Preprocess data
+        run: uv run python src/text_preprocessing.py
+
+      - name: Train model
+        run: uv run python src/text_classification.py
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: model-${{ github.run_number }}
+          name: "Model Release ${{ github.run_number }}"
+          files: |
+            output/model.joblib
+            output/preprocessor.joblib
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
