@@ -2,6 +2,10 @@ name: Train & Release Model
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - f9-automate-training
+
 jobs:
   train-release:
     runs-on: ubuntu-latest
