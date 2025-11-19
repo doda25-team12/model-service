@@ -22,6 +22,9 @@ jobs:
       - name: Sync dependencies
         run: uv sync
 
+      - name: Create output directory
+        run: mkdir -p output
+
       - name: Download dataset
         run: uv run python src/get_data.py
 
