@@ -25,8 +25,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Expose Flask default port
-EXPOSE 5000
+EXPOSE 8081
 
 # Run the Flask app
 # Replace app.py with your actual entry file
-CMD ["python", "app.py"]
+CMD ["python", "src/serve_model.py"]
