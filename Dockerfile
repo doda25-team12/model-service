@@ -24,8 +24,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy backend source code
 COPY . .
 
-# Expose Flask default port
-EXPOSE 8081
+# Set environment variable with default
+ENV MODEL_SERVICE_PORT=8081
+
+# Expose default port (configurable via MODEL_SERVICE_PORT env variable)
+EXPOSE ${MODEL_SERVICE_PORT}
 
 # Run the Flask app
 # Replace app.py with your actual entry file
