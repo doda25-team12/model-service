@@ -61,4 +61,13 @@ Once its startup has finished, you can either access [localhost:8081/apidocs](ht
     }
 
 
+### Build and run the container (multi-arch capable)
+
+From the `model-service` root folder:
+
+```
+docker buildx create --use --name multi || docker buildx use multi
+docker buildx build --builder multi --platform linux/amd64,linux/arm64 -t local/model-service:dev --load .
+docker run --rm -p 8081:8081 local/model-service:dev
+```
 
