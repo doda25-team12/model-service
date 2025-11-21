@@ -7,6 +7,7 @@ import numpy as np
 
 import string
 import nltk
+import os
 from nltk.corpus import stopwords
 from nltk.stem import SnowballStemmer
 nltk.download('stopwords')
@@ -15,6 +16,11 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.preprocessing import FunctionTransformer
 from sklearn.pipeline import make_union, make_pipeline
 from joblib import dump, load
+
+
+MODEL_STORAGE = "output"
+PREPROCESSOR_DIR = os.path.join(MODEL_STORAGE, 'preprocessor.joblib')
+PREPROCESSED_DATA_DIR = os.path.join(MODEL_STORAGE, 'preprocessed_data.joblib')
 
 def _load_data():
     messages = pd.read_csv(
@@ -65,14 +71,14 @@ def _preprocess(messages):
         # append the message length feature to the vector
         FunctionTransformer(_extract_message_len, validate=False)
     )
-
+    
     preprocessed_data = preprocessor.fit_transform(messages['message'])
-    dump(preprocessor, 'output/preprocessor.joblib')
-    dump(preprocessed_data, 'output/preprocessed_data.joblib')
+    dump(preprocessor, PREPROCESSOR_DIR)
+    dump(preprocessed_data, PREPROCESSED_DATA_DIR)
     return preprocessed_data
 
 def prepare(message):
-    preprocessor = load('output/preprocessor.joblib')
+    preprocessor = load(PREPROCESSOR_DIR)
     return preprocessor.transform([message])
 
 

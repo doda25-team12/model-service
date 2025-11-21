@@ -32,6 +32,9 @@ def predict_labels(classifier, X_test):
     return classifier.predict(X_test)
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model-version", required=False)
+    args = parser.parse_args()
 
     raw_data = _load_data()
     preprocessed_data = load('output/preprocessed_data.joblib')
@@ -89,7 +92,10 @@ def main():
     plt.savefig("output/accuracy_scores.png")
 
     # Store "best" classifier
-    dump(classifiers['Decision Tree'], 'output/model.joblib')
+    if args.model_version:
+        dump(classifiers['Decision Tree'], f'output/model-{args.model_version}.joblib')
+    else:
+        dump(classifiers['Decision Tree'], 'output/model.joblib')
 
 if __name__ == "__main__":
     main()
