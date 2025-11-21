@@ -46,5 +46,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /opt/venv /opt/venv
 COPY . .
 
-EXPOSE 8081
+# Set environment variable with default
+ENV MODEL_SERVICE_PORT=8081
+
+# Expose default port (configurable via MODEL_SERVICE_PORT env variable)
+EXPOSE ${MODEL_SERVICE_PORT}
+
 CMD ["python", "src/serve_model.py"]
