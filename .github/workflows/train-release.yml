@@ -16,6 +16,7 @@ on:
     branches:
       - f9-automate-training
       - main
+      - F9-fix-pipeline
 
 jobs:
   train-release:
