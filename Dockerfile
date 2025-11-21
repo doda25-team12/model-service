@@ -1,10 +1,16 @@
-# Use an official lightweight Python image
-FROM python:3.12.9-slim
+# syntax=docker/dockerfile:1.7
 
-# Set working directory inside container
+ARG PYTHON_VERSION=3.12.9
+
+# ------------------------------
+# 1 - Builder stage: install deps into venv
+# ------------------------------
+FROM --platform=$BUILDPLATFORM python:${PYTHON_VERSION}-slim AS builder
+ENV VIRTUAL_ENV=/opt/venv
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 WORKDIR /app
 
-# Install system-level dependencies for numpy, scipy, matplotlib, sklearn
+# Build tooling stays in builder only
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     gfortran \
@@ -15,18 +21,30 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libfreetype6-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better caching
 COPY requirements.txt .
+RUN python -m venv "$VIRTUAL_ENV" \
+    && pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
 
-# Install Python packages
-RUN pip install --no-cache-dir -r requirements.txt
+# ------------------------------
+# 2 - Runtime stage: slimmer image
+# ------------------------------
+FROM python:${PYTHON_VERSION}-slim
+ENV VIRTUAL_ENV=/opt/venv
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+WORKDIR /app
 
-# Copy backend source code
+# Only runtime libs; no compilers
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libatlas-base-dev \
+    libblas-dev \
+    liblapack-dev \
+    libpng-dev \
+    libfreetype6-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /opt/venv /opt/venv
 COPY . .
 
-# Expose Flask default port
 EXPOSE 8081
-
-# Run the Flask app
-# Replace app.py with your actual entry file
 CMD ["python", "src/serve_model.py"]
