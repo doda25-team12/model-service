@@ -3,10 +3,6 @@ name: Train & Release Model
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Model version (e.g., v1.0.0 or 1.0.0)'
-        required: true
-        type: string
       release_notes:
         description: 'Release notes (optional)'
         required: false
@@ -17,6 +13,7 @@ on:
       - f9-automate-training
       - main
       - F9-fix-pipeline
+      - f9-release-semantic
 
 jobs:
   train-release:
@@ -27,31 +24,42 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history and tags
 
-      - name: Validate and normalize version
+      - name: Calculate next version
         id: version
         run: |
-          VERSION="${{ inputs.version }}"
+          # Fetch the latest release tag
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
 
-          # Only validate if triggered by workflow_dispatch (not push)
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            # Validate semantic version format
-            if [[ ! "$VERSION" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-              echo "Error: Invalid version format. Expected: v1.2.3 or 1.2.3"
-              exit 1
-            fi
-
-            # Normalize version (add 'v' prefix if missing)
-            if [[ ! "$VERSION" =~ ^v ]]; then
-              VERSION="v$VERSION"
-            fi
-
-            echo "normalized=$VERSION" >> $GITHUB_OUTPUT
-            echo "Using version: $VERSION"
+          if [ -z "$LATEST_TAG" ]; then
+            # No tags exist, start with v1.0.0
+            NEW_VERSION="v1.0.0"
+            echo "No previous releases found. Starting with: $NEW_VERSION"
           else
-            # For push events, use run number
-            echo "normalized=model-${{ github.run_number }}" >> $GITHUB_OUTPUT
+            echo "Latest tag: $LATEST_TAG"
+
+            # Remove 'v' prefix if present
+            VERSION=${LATEST_TAG#v}
+
+            # Parse semantic version (MAJOR.MINOR.PATCH)
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+
+            # Default to 0.0.0 if parsing fails
+            MAJOR=${MAJOR:-0}
+            MINOR=${MINOR:-0}
+            PATCH=${PATCH:-0}
+
+            # Increment patch version
+            PATCH=$((PATCH + 1))
+
+            # Construct new version
+            NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
+            echo "Next version: $NEW_VERSION"
           fi
+
+          echo "normalized=$NEW_VERSION" >> $GITHUB_OUTPUT
 
       - name: Install uv
         run: curl -LsSf https://astral.sh/uv/install.sh | sh
