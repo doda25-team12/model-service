@@ -43,7 +43,7 @@ The resulting model files will be placed as `.joblib` files in the `output/` fol
 
 To make the models accessible, you need to start the microservice by running the `src/serve_model.py` script from within the virtual environment that you created before, or in a fresh Docker container (recommended):
 
-    $ docker run -it --rm -p 8081:8081 -v ./:/root/sms/ python:3.12.9-slim bash
+    $ docker run -it --rm -e MODEL_VERSION=0.0.1 -e MODEL_BASE_URL=https://github.com/doda25-team1/model-service/releases/download -p 8081:8081 -v ./:/root/sms/ python:3.12.9-slim bash
     ... (container startup)
     $ cd /root/sms/
     $ pip install -r requirements.txt
