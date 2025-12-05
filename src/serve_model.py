@@ -2,14 +2,15 @@
 Flask API of the SMS Spam detection model model.
 """
 import os
+import time
 import joblib
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, Response
 from flasgger import Swagger
 import pandas as pd
-import os
 import requests
 
 from text_preprocessing import prepare, _extract_message_len, _text_process
+from metrics import metrics
 
 
 # Directory where the model files should be found or placed
@@ -114,10 +115,23 @@ def predict():
       200:
         description: "The result of the classification: 'spam' or 'ham'."
     """
+    start_time = time.time()
+    
     input_data = request.get_json()
     sms = input_data.get('sms')
     processed_sms = prepare(sms)
     prediction = model.predict(processed_sms)[0]
+    
+    # Calculate inference duration
+    duration = time.time() - start_time
+    
+    # Record metrics
+    metrics.inc_predictions(prediction)  # 'spam' or 'ham'
+    metrics.observe_inference_duration(duration)
+    
+    # For models that support predict_proba, we could get confidence
+    # For now, we are setting a placeholder confidence (1.0 for deterministic prediction)
+    metrics.set_confidence(1.0)
     
     res = {
         "result": prediction,
@@ -126,6 +140,18 @@ def predict():
     }
     print(res)
     return jsonify(res)
+
+
+@app.route('/metrics')
+def prometheus_metrics():
+    """
+    Expose Prometheus metrics endpoint.
+    ---
+    responses:
+      200:
+        description: Prometheus metrics in text format
+    """
+    return Response(metrics.format_metrics(), mimetype='text/plain; charset=utf-8')
 
 if __name__ == '__main__':
     #clf = joblib.load('output/model.joblib')
