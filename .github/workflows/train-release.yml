@@ -10,16 +10,19 @@ on:
         default: 'Model training and release'
   push:
     branches:
-      - f9-automate-training
       - main
-      - F9-fix-pipeline
-      - f9-release-semantic
+      - 'test**'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   train-release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      packages: write  # Required for pushing to GHCR
 
     steps:
       - name: Checkout code
@@ -77,7 +80,11 @@ jobs:
         run: uv run python src/text_preprocessing.py
 
       - name: Train model
-        run: uv run python src/text_classification.py
+        run: |
+          # Extract version without 'v' prefix for model filename
+          VERSION_NO_V="${{ steps.version.outputs.normalized }}"
+          VERSION_NO_V="${VERSION_NO_V#v}"
+          uv run python src/text_classification.py --model-version "$VERSION_NO_V"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -86,7 +93,44 @@ jobs:
           name: "Model Release ${{ steps.version.outputs.normalized }}"
           body: ${{ inputs.release_notes || 'Automated model release' }}
           files: |
-            output/model.joblib
+            output/model-*.joblib
             output/preprocessor.joblib
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract container metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ steps.version.outputs.normalized }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build and push Docker image (multi-arch)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Output container information
+        run: |
+          echo "Container image published to GHCR"
+          echo "Registry: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          echo "Version: ${{ steps.version.outputs.normalized }}"
+          echo "Tags: ${{ steps.meta.outputs.tags }}"
