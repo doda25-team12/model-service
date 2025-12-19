@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libfreetype6-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+COPY model-service/requirements.txt .
 RUN python -m venv "$VIRTUAL_ENV" \
     && pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
@@ -44,7 +44,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /opt/venv /opt/venv
-COPY . .
+COPY model-service/ .
+
+# Ensure a versioned model filename exists for the default deployment (uses 'latest')
+# so the runtime can find `model-<VERSION>.joblib` when MODEL_VERSION=latest.
+RUN if [ -f output/model.joblib ]; then cp output/model.joblib output/model-latest.joblib || true; fi
 
 # Set environment variable with default
 ENV MODEL_SERVICE_PORT=8081
