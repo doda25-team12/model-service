@@ -1,0 +1,100 @@
+# Pre-commit hooks for Model Service
+# Install with: pip install pre-commit
+# Setup with: pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  # General hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: mixed-line-ending
+      - id: check-docstring-first
+      - id: debug-statements
+      - id: requirements-txt-fixer
+
+  # Secret detection with TruffleHog
+  - repo: https://github.com/trufflesecurity/trufflehog
+    rev: v3.63.2
+    hooks:
+      - id: trufflehog
+        name: TruffleHog
+        entry: bash -c 'trufflehog git file://. --since-commit HEAD --only-verified --fail'
+        language: system
+        stages: [commit]
+
+  # GitLeaks for additional secret scanning
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.1
+    hooks:
+      - id: gitleaks
+
+  # Python code formatting with Black
+  - repo: https://github.com/psf/black
+    rev: 23.12.1
+    hooks:
+      - id: black
+        language_version: python3.12
+        args: ['--line-length=120']
+
+  # Import sorting with isort
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: ['--profile', 'black', '--line-length', '120']
+
+  # Linting with flake8
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        args: ['--max-line-length=120', '--extend-ignore=E203,W503']
+
+  # Security linting with Bandit
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.6
+    hooks:
+      - id: bandit
+        args: ['-r', 'src/', '-ll']
+        exclude: ^tests/
+
+  # Dependency vulnerability scanning with Safety
+  - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
+    rev: v1.3.3
+    hooks:
+      - id: python-safety-dependencies-check
+        args: ['--ignore=70612']  # Add specific CVEs to ignore if needed
+
+  # Semgrep for SAST
+  - repo: https://github.com/returntocorp/semgrep
+    rev: v1.50.0
+    hooks:
+      - id: semgrep
+        args: ['--config=p/python', '--config=p/flask', '--config=p/security-audit', '--error']
+        stages: [commit]
+
+  # Type checking with mypy
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        args: [--ignore-missing-imports, --warn-unused-configs]
+        additional_dependencies: [types-all]
+        exclude: ^tests/
+
+  # Dockerfile linting
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint-docker
+        args: ['--ignore', 'DL3008', '--ignore', 'DL3009']
