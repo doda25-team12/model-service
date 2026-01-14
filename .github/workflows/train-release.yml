@@ -70,6 +70,13 @@ jobs:
       - name: Sync dependencies
         run: uv sync
 
+      - name: Lint code
+        run: |
+          echo "🔍 Running Ruff linter..."
+          uv run ruff check src/
+          uv run ruff format --check src/
+          echo "✅ Linting passed!"
+
       - name: Create output directory
         run: mkdir -p output
 

@@ -1,17 +1,21 @@
 """
 Flask API of the SMS Spam detection model model.
 """
+
 import os
 import time
+
 import joblib
-from flask import Flask, jsonify, request, Response
-from flasgger import Swagger
-import pandas as pd
 import requests
+from flasgger import Swagger
+from flask import Flask, Response, jsonify, request
 
-from text_preprocessing import prepare, _extract_message_len, _text_process
 from metrics import metrics
-
+from text_preprocessing import (
+    _extract_message_len,  # noqa: F401 - required for pickle deserialization
+    _text_process,  # noqa: F401 - required for pickle deserialization
+    prepare,
+)
 
 # Directory where the model files should be found or placed
 MODEL_STORAGE = "output"
@@ -32,15 +36,14 @@ PREPROC_FULL_PATH = os.path.join(MODEL_STORAGE, "preprocessor.joblib")
 
 # ========== Internal utilities ========== #
 
+
 def fetch_if_missing(source_url, destination):
     """Retrieve a file from a URL only when it's not already present."""
     if os.path.isfile(destination):
         return
 
     if not source_url:
-        raise RuntimeError(
-            f"Missing required file '{destination}' and no download source was given."
-        )
+        raise RuntimeError(f"Missing required file '{destination}' and no download source was given.")
 
     print(f"[model-service] Fetching model artifact: {source_url}")
     response = requests.get(source_url, timeout=30)
@@ -92,7 +95,7 @@ app = Flask(__name__)
 swagger = Swagger(app)
 
 
-@app.route('/predict', methods=['POST'])
+@app.route("/predict", methods=["POST"])
 def predict():
     """
     Predict whether an SMS is Spam.
@@ -116,33 +119,29 @@ def predict():
         description: "The result of the classification: 'spam' or 'ham'."
     """
     start_time = time.time()
-    
+
     input_data = request.get_json()
-    sms = input_data.get('sms')
+    sms = input_data.get("sms")
     processed_sms = prepare(sms)
     prediction = model.predict(processed_sms)[0]
-    
+
     # Calculate inference duration
     duration = time.time() - start_time
-    
+
     # Record metrics
     metrics.inc_predictions(prediction)  # 'spam' or 'ham'
     metrics.observe_inference_duration(duration)
-    
+
     # For models that support predict_proba, we could get confidence
     # For now, we are setting a placeholder confidence (1.0 for deterministic prediction)
     metrics.set_confidence(1.0)
-    
-    res = {
-        "result": prediction,
-        "classifier": "decision tree",
-        "sms": sms
-    }
+
+    res = {"result": prediction, "classifier": "decision tree", "sms": sms}
     print(res)
     return jsonify(res)
 
 
-@app.route('/metrics')
+@app.route("/metrics")
 def prometheus_metrics():
     """
     Expose Prometheus metrics endpoint.
@@ -151,9 +150,10 @@ def prometheus_metrics():
       200:
         description: Prometheus metrics in text format
     """
-    return Response(metrics.format_metrics(), mimetype='text/plain; charset=utf-8')
+    return Response(metrics.format_metrics(), mimetype="text/plain; charset=utf-8")
 
-if __name__ == '__main__':
-    #clf = joblib.load('output/model.joblib')
+
+if __name__ == "__main__":
+    # clf = joblib.load('output/model.joblib')
     port = int(os.getenv("MODEL_SERVICE_PORT", "8081"))
     app.run(host="0.0.0.0", port=port, debug=True)

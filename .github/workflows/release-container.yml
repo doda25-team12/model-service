@@ -16,8 +16,28 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Sync dependencies
+        run: uv sync
+
+      - name: Lint code
+        run: |
+          echo "🔍 Running Ruff linter..."
+          uv run ruff check src/
+          uv run ruff format --check src/
+          echo "✅ Linting passed!"
+
   build-and-push:
     runs-on: ubuntu-latest
+    needs: lint
     permissions:
       contents: read
       packages: write
