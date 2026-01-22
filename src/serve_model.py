@@ -18,8 +18,12 @@ from text_preprocessing import (
 )
 
 # Directory where the model files should be found or placed
-MODEL_STORAGE = "output"
-os.makedirs(MODEL_STORAGE, exist_ok=True)
+# Check for mounted volume first (/models), fallback to local output directory
+if os.path.isdir("/models"):
+    MODEL_STORAGE = "/models"
+else:
+    MODEL_STORAGE = "output"
+    os.makedirs(MODEL_STORAGE, exist_ok=True)
 
 # Read environment variables
 MODEL_VERSION = os.getenv("MODEL_VERSION")
@@ -76,7 +80,8 @@ def prepare_model_files():
         )
 
     # Case 3: Download model + preprocessor
-    bundle_tag = f"model-v{MODEL_VERSION}"
+    # GitHub releases use format: v{VERSION} (e.g., v1.0.2)
+    bundle_tag = f"v{MODEL_VERSION}" if not MODEL_VERSION.startswith("v") else MODEL_VERSION
     model_src = f"{DOWNLOAD_BASE}/{bundle_tag}/{MODEL_FILE}"
     preproc_src = f"{DOWNLOAD_BASE}/{bundle_tag}/preprocessor.joblib"
 
