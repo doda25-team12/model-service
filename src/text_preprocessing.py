@@ -17,7 +17,12 @@ from sklearn.preprocessing import FunctionTransformer
 
 nltk.download("stopwords")
 
-MODEL_STORAGE = "output"
+# Check for mounted volume first (/models), fallback to local output directory
+if os.path.isdir("/models"):
+    MODEL_STORAGE = "/models"
+else:
+    MODEL_STORAGE = "output"
+
 PREPROCESSOR_DIR = os.path.join(MODEL_STORAGE, "preprocessor.joblib")
 PREPROCESSED_DATA_DIR = os.path.join(MODEL_STORAGE, "preprocessed_data.joblib")
 
